@@ -36,6 +36,8 @@ interface DocumentData {
   signatureImage?: string | null;
 }
 
+const STORAGE_KEY = 'katbatzolog_data';
+
 const defaultValues: DocumentData = {
   classification: 'בלמ"ס',
   unitName: 'בית הספר לקצינים',
@@ -45,8 +47,8 @@ const defaultValues: DocumentData = {
 מספר פקס: 03-1928376
 כ"ג באדר התשפ"ו
 12 במרץ 2026`,
-  toRecipients: [{ value: 'בה"ד 1-מגמת נחשון-גדוד ארז-מ"פ דותן-סרן אבי כהן' }],
-  ccRecipients: [{ value: 'בה"ד 1-מגמת נחשון-גדוד ארז-מפקדת צוות 16-סגן ישראלה ישראל' }],
+  toRecipients: [{ value: 'בה"ד 1-מגמת נחשון-גדוד ארז-מ"פ דותן-סרן אביה רויטברג' }],
+  ccRecipients: [{ value: 'בה"ד 1-מגמת נחשון-גדוד ארז-מפקדת צוות 14-סגן תהל קוור' }],
   subject: 'צוער/ת בבית הספר לקצינים',
   body: '1. פסקה ראשונה של המכתב.\nא. תת-סעיף ראשון.\n1) תת-תת-סעיף ראשון.\n2. פסקה שנייה של המכתב.',
   gender: 'זכר',
@@ -59,8 +61,25 @@ const defaultValues: DocumentData = {
 
 export default function App() {
   const { register, control, watch, handleSubmit, setValue } = useForm<DocumentData>({
-    defaultValues,
+    defaultValues: (() => {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved data', e);
+        }
+      }
+      return defaultValues;
+    })(),
   });
+
+  React.useEffect(() => {
+    const subscription = watch((value) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
 
   const { fields: toFields, append: appendTo, remove: removeTo } = useFieldArray({
     control,
@@ -221,7 +240,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-6 h-6 text-indigo-600" />
-            <h1 className="text-xl font-semibold text-slate-800">מחולל מסמכים צבאיים</h1>
+            <h1 className="text-xl font-semibold text-slate-800">כתב&quot;צולוג</h1>
           </div>
           <button
             onClick={handleDownload}
