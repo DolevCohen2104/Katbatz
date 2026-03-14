@@ -1,20 +1,60 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Katbatz (כתבץ) - מחולל מכתבים צבאיים
 
-# Run and deploy your AI Studio app
+מחולל מכתבים מתקדם המיועד ליצירת מסמכים צבאיים תקניים (בפורמט בה"ד 1) במהירות ובדיוק. המערכת מספקת תצוגה מקדימה חיה (Live Preview) ואפשרות להורדה כקובץ PDF איכותי.
 
-This contains everything you need to run your app locally.
+## ✨ תכונות עיקריות
 
-View your app in AI Studio: https://ai.studio/apps/6fdb1bb5-93ed-46f1-bd92-3960c1422a2a
+- **תאימות לתקן צה"לי:** פורמט מובנה הכולל את כל מרכיבי המכתב (סיווג, יחידה, מוען, הנדון, חתימה וסלוגן).
+- **הזחה אוטומטית:** זיהוי אוטומטי של רמות סעיפים (1., א., 1)) וביצוע הזחה (Indentation) בהתאם לתקן.
+- **ניהול נמענים:** הוספה והסרה קלה של נמעני "אל" ו"דע". הסעיפים מוסתרים אוטומטית אם הם ריקים.
+- **חתימה דיגיטלית:** אפשרות להעלאת תמונת חתימה אישית המוטמעת במסמך.
+- **ייצוא ל-PDF:** המרה מדוייקת של התצוגה המקדימה לקובץ PDF מוכן להדפסה או למשלוח.
+- **עיצוב מודרני:** ממשק משתמש נקי, רספונסיבי ונוח לעבודה.
 
-## Run Locally
+## 🛠 טכנולוגיות
 
-**Prerequisites:**  Node.js
+- **Frontend:** React 19 + TypeScript
+- **Styling:** Tailwind CSS 4.0
+- **PDF Generation:** html2pdf.js
+- **Icons:** Lucide React
+- **Forms:** React Hook Form
 
+## 🚀 הרצה מקומית
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. התקן תלויות:
+   ```bash
+   npm install
+   ```
+
+2. הרץ את שרת הפיתוח:
+   ```bash
+   npm run dev
+   ```
+
+3. פתח את הדפדפן בכתובת `http://localhost:3000`.
+
+## 🐳 Docker - פריסה לייצור
+
+המערכת כוללת Dockerfile לייצור לבנייה ופריסה קלה:
+
+1. בניית ה-Image:
+   ```bash
+   docker build -t katbatz .
+   ```
+
+2. הרצת ה-Container:
+   ```bash
+   docker run -d -p 8080:80 katbatz
+   ```
+
+המערכת תהיה זמינה בכתובת `http://localhost:8080`.
+
+## 📝 הנחיות כתיבה למשתמש
+
+- **סעיפים:** המערכת מזהה אוטומטית פורמטים של סעיפים (כמו `א.`, `1)`, `א)`) ומסיטה אותם שמאלה.
+- **רווחים:** ניתן להשתמש ברווחים ידניים בתחילת שורה להזחה נוספת.
+- **שורה וחצי:** גוף המכתב מוגדר ברווח של 1.5 שורות כברירת מחדל.
+- **לוגואים:** ניתן לעדכן את הלוגואים בתיקיית `src/icons`.
+
+---
+נוצר עבור צוערים ומפקדים בצה"ל לשיפור איכות המכתבים והחיסכון בזמן.
