@@ -12,26 +12,10 @@ import { twMerge } from 'tailwind-merge';
 import idfLogo from './icons/Badge_of_the_Israeli_Defense_Forces.svg';
 import bahad1Logo from './icons/Bahad_1_Symbol.SVG.png';
 
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  Font,
-  Image as PDFImage,
-  PDFDownloadLink,
-  pdf
-} from '@react-pdf/renderer';
-
-// Register Hebrew font
-Font.register({
-  family: 'Assistant',
-  fonts: [
-    { src: 'https://raw.githubusercontent.com/google/fonts/main/ofl/assistant/Assistant%5Bwght%5D.ttf', fontWeight: 400 },
-    { src: 'https://raw.githubusercontent.com/google/fonts/main/ofl/assistant/Assistant%5Bwght%5D.ttf', fontWeight: 700 }, // Using same for now to ensure it works
-  ],
-});
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
+// @ts-ignore
+import html2canvas from 'html2canvas';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -79,295 +63,6 @@ const defaultValues: DocumentData = {
   slogan: 'סלוגן לדוגמה',
   signatureImage: null,
   pdfFilename: 'מסמך_צבאי',
-};
-
-// Styles for React-PDF
-const pdfStyles = StyleSheet.create({
-  page: {
-    paddingTop: '2.5cm',
-    paddingBottom: '2.5cm',
-    paddingLeft: '2.5cm',
-    paddingRight: '2.5cm',
-    fontFamily: 'Assistant',
-    fontSize: 12,
-    lineHeight: 1.5,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'column',
-  },
-  header: {
-    position: 'absolute',
-    top: '2.5cm',
-    left: '2.5cm',
-    right: '2.5cm',
-    height: '4.5cm',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  classification: {
-    fontWeight: 'bold',
-    textDecoration: 'underline',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  pageNumber: {
-    textAlign: 'center',
-    fontSize: 10,
-  },
-  logosContainer: {
-    position: 'absolute',
-    top: '2cm',
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  logo: {
-    height: '1.8cm',
-    width: 'auto',
-  },
-  senderDetails: {
-    width: 250,
-    marginBottom: 20,
-    textAlign: 'right',
-  },
-  senderRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  senderCell: {
-    flex: 1,
-    textAlign: 'right',
-  },
-  senderCellCenter: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  senderCellLeft: {
-    flex: 1,
-    textAlign: 'left',
-  },
-  bold: {
-    fontWeight: 'bold',
-  },
-  content: {
-    marginTop: 20,
-    textAlign: 'right',
-  },
-  recipientBlock: {
-    marginBottom: 20,
-  },
-  recipientRow: {
-    flexDirection: 'row-reverse',
-    marginBottom: 2,
-  },
-  recipientLabel: {
-    width: 30,
-    textDecoration: 'underline',
-  },
-  recipientValue: {
-    flex: 1,
-  },
-  greeting: {
-    marginBottom: 15,
-  },
-  subject: {
-    textAlign: 'center',
-    fontWeight: 'bold',
-    marginBottom: 30,
-    textDecoration: 'underline',
-  },
-  bodyLine: {
-    marginBottom: 0,
-    lineHeight: 2.5,
-  },
-  signatureSection: {
-    marginTop: 40,
-    alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
-  },
-  signatureContainer: {
-    width: 250,
-    alignItems: 'flex-end',
-  },
-  signatureImage: {
-    height: 80,
-    width: 'auto',
-    marginVertical: 10,
-    alignSelf: 'center',
-  },
-  signatureSpacer: {
-    height: 80,
-  },
-  signatureTable: {
-    width: '100%',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: '1cm',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-});
-
-const MilitaryDocument = ({ data }: { data: DocumentData }) => {
-  const splitToThree = (str: string) => {
-    const words = (str || '').trim().split(/\s+/);
-    if (words.length === 0 || (words.length === 1 && words[0] === '')) return ['', '', ''];
-    if (words.length === 1) return [words[0], '', ''];
-    if (words.length === 2) return [words[0], '', words[1]];
-
-    const base = Math.floor(words.length / 3);
-    const remainder = words.length % 3;
-
-    const s1 = base + (remainder > 0 ? 1 : 0);
-    const s2 = base + (remainder > 1 ? 1 : 0);
-
-    return [
-      words.slice(0, s1).join(' '),
-      words.slice(s1, s1 + s2).join(' '),
-      words.slice(s1 + s2).join(' ')
-    ];
-  };
-
-  return (
-    <Document title={data.pdfFilename}>
-      <Page size="A4" style={pdfStyles.page}>
-        {/* Repeating Header */}
-        <View style={pdfStyles.header} fixed>
-          <Text style={pdfStyles.classification}>{data.classification}</Text>
-          <Text style={pdfStyles.pageNumber} render={({ pageNumber, totalPages }) => (
-            `${pageNumber}`
-          )} />
-          <View style={pdfStyles.logosContainer}>
-            <PDFImage src={idfLogo} style={pdfStyles.logo} />
-            <PDFImage src={bahad1Logo} style={pdfStyles.logo} />
-          </View>
-        </View>
-
-        {/* Sender Details - Page 1 only implicit (absolute pos in HTML) */}
-        {/* In react-pdf we just flow it */}
-        <View style={pdfStyles.senderDetails}>
-          <View style={pdfStyles.senderRow}>
-            {splitToThree(data.unitName).map((part, i) => (
-              <Text key={i} style={[pdfStyles.bold, i === 0 ? pdfStyles.senderCell : i === 1 ? pdfStyles.senderCellCenter : pdfStyles.senderCellLeft]}>
-                {part}
-              </Text>
-            ))}
-          </View>
-          {data.unitHonoring && (
-            <View style={pdfStyles.senderRow}>
-              {splitToThree(data.unitHonoring).map((part, i) => (
-                <Text key={i} style={[pdfStyles.bold, i === 0 ? pdfStyles.senderCell : i === 1 ? pdfStyles.senderCellCenter : pdfStyles.senderCellLeft]}>
-                  {part}
-                </Text>
-              ))}
-            </View>
-          )}
-          {data.subUnitName && (
-            <View style={pdfStyles.senderRow}>
-              {splitToThree(data.subUnitName).map((part, i) => (
-                <Text key={i} style={[pdfStyles.bold, i === 0 ? pdfStyles.senderCell : i === 1 ? pdfStyles.senderCellCenter : pdfStyles.senderCellLeft]}>
-                  {part}
-                </Text>
-              ))}
-            </View>
-          )}
-          {data.senderDetailsText.split('\n').filter(Boolean).map((line, i) => (
-            <View key={i} style={pdfStyles.senderRow}>
-              {splitToThree(line).map((part, j) => (
-                <Text key={j} style={j === 0 ? pdfStyles.senderCell : j === 1 ? pdfStyles.senderCellCenter : pdfStyles.senderCellLeft}>
-                  {part}
-                </Text>
-              ))}
-            </View>
-          ))}
-        </View>
-
-        <View style={pdfStyles.content}>
-          {/* Recipient Block */}
-          <View style={pdfStyles.recipientBlock}>
-            {data.toRecipients.some(r => r.value.trim()) && (
-              <View style={pdfStyles.recipientRow}>
-                <Text style={pdfStyles.recipientLabel}>אל:</Text>
-                <View style={pdfStyles.recipientValue}>
-                  {data.toRecipients.filter(r => r.value.trim()).map((r, i) => (
-                    <Text key={i}>{r.value}</Text>
-                  ))}
-                </View>
-              </View>
-            )}
-            {data.ccRecipients.some(r => r.value.trim()) && (
-              <View style={pdfStyles.recipientRow}>
-                <Text style={pdfStyles.recipientLabel}>דע:</Text>
-                <View style={pdfStyles.recipientValue}>
-                  {data.ccRecipients.filter(r => r.value.trim()).map((r, i) => (
-                    <Text key={i}>{r.value}</Text>
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
-
-          <Text style={pdfStyles.greeting}>שלום רב,</Text>
-
-          <Text style={pdfStyles.subject}>הנדון: {data.subject}</Text>
-
-          <View>
-            {data.body.split('\n').map((line, i) => {
-              const trimmedLine = line.trim();
-              const leadingSpaces = line.match(/^ */)?.[0].length || 0;
-              let autoPadding = 0;
-              if (/^[א-ת]\./.test(trimmedLine)) autoPadding = 15;
-              else if (/^\d+\)/.test(trimmedLine)) autoPadding = 30;
-              else if (/^[א-ת]\)/.test(trimmedLine)) autoPadding = 45;
-
-              const paddingRight = (leadingSpaces / 3) * 15 + autoPadding;
-
-              return (
-                <Text key={i} style={[pdfStyles.bodyLine, { paddingRight: paddingRight }]}>
-                  {trimmedLine || '\u00A0'}
-                </Text>
-              );
-            })}
-          </View>
-
-          {/* Signature Block */}
-          <View style={pdfStyles.signatureSection}>
-            <View style={pdfStyles.signatureContainer}>
-              <Text>בברכה,</Text>
-              {data.signatureImage ? (
-                <PDFImage src={data.signatureImage} style={pdfStyles.signatureImage} />
-              ) : (
-                <View style={pdfStyles.signatureSpacer} />
-              )}
-              <View style={pdfStyles.signatureTable}>
-                <View style={pdfStyles.senderRow}>
-                  {splitToThree(`${data.rank} ${data.fullName}`).map((part, i) => (
-                    <Text key={i} style={[pdfStyles.bold, i === 0 ? pdfStyles.senderCell : i === 1 ? pdfStyles.senderCellCenter : pdfStyles.senderCellLeft]}>
-                      {part}
-                    </Text>
-                  ))}
-                </View>
-                <View style={pdfStyles.senderRow}>
-                  {splitToThree(data.roleTitle).map((part, i) => (
-                    <Text key={i} style={i === 0 ? pdfStyles.senderCell : i === 1 ? pdfStyles.senderCellCenter : i === 1 ? pdfStyles.senderCellLeft : pdfStyles.senderCellLeft}>
-                      {part}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Footer Slogan */}
-        <Text style={pdfStyles.footer} fixed>{data.slogan}</Text>
-      </Page>
-    </Document>
-  );
 };
 
 export default function App() {
@@ -438,23 +133,8 @@ export default function App() {
     }
   };
 
-  const handleDownload = async () => {
-    setIsGenerating(true);
-    try {
-      const blob = await pdf(<MilitaryDocument data={data} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${data.pdfFilename || 'מסמך_צבאי'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to generate PDF', error);
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleDownload = () => {
+    window.print();
   };
 
   return (
@@ -910,6 +590,56 @@ export default function App() {
         </div>
       </main>
 
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+          @page {
+            size: A4;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            counter-reset: page;
+          }
+          .page-number::after {
+            counter-increment: page;
+            content: counter(page);
+          }
+          .print-no-padding {
+            padding: 0 !important;
+          }
+        }
+        /* Ensure tfoot adheres to the very bottom */
+        .table-footer-group {
+          display: table-footer-group;
+          vertical-align: bottom;
+        }
+      `}} />
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+          @page {
+            size: A4;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            counter-reset: page;
+          }
+          .page-number::after {
+            counter-increment: page;
+            content: counter(page);
+          }
+          .print-no-padding {
+            padding: 0 !important;
+          }
+        }
+        /* Ensure tfoot adheres to the very bottom */
+        .table-footer-group {
+          display: table-footer-group;
+          vertical-align: bottom;
+        }
+      `}} />
     </div>
   );
 }
