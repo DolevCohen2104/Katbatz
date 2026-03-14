@@ -14,6 +14,8 @@ import bahad1Logo from './icons/Bahad_1_Symbol.SVG.png';
 
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
+// @ts-ignore
+import html2canvas from 'html2canvas';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,6 +37,7 @@ interface DocumentData {
   roleTitle: string;
   slogan: string;
   signatureImage?: string | null;
+  pdfFilename: string;
 }
 
 const STORAGE_KEY = 'katbatzolog_data';
@@ -59,6 +62,7 @@ const defaultValues: DocumentData = {
   roleTitle: 'צוער בבית הספר לקצינים',
   slogan: 'סלוגן לדוגמה',
   signatureImage: null,
+  pdfFilename: 'מסמך_צבאי',
 };
 
 export default function App() {
@@ -147,8 +151,8 @@ export default function App() {
     clone.style.width = '794px';       // A4 width at 96 DPI
     clone.style.height = 'auto';       // Allow growth for multiple pages
     clone.style.overflow = 'visible';
-    clone.style.position = 'relative'; 
-    clone.style.padding = '2.5cm';     // Restore strict margin padding
+    clone.style.position = 'relative';
+    clone.style.padding = '2.5cm';     // Use opt.margin instead to avoid double padding
     clone.style.boxSizing = 'border-box';
     clone.style.backgroundColor = '#ffffff';
     clone.classList.remove('w-full', 'w-[210mm]', 'max-w-[210mm]');
@@ -159,6 +163,11 @@ export default function App() {
       table.style.width = '100%';
       table.style.tableLayout = 'fixed';
       table.style.borderCollapse = 'collapse';
+      // Force table display modes for PDF engine
+      const thead = table.querySelector('thead');
+      if (thead) (thead as HTMLElement).style.display = 'table-header-group';
+      const tfoot = table.querySelector('tfoot');
+      if (tfoot) (tfoot as HTMLElement).style.display = 'table-footer-group';
     }
 
     // Fix Underline Strikethrough by replacing with tighter border-bottom spans
@@ -167,45 +176,45 @@ export default function App() {
       const htmlEl = el as HTMLElement;
       htmlEl.classList.remove('underline', 'decoration-1', 'underline-offset-2');
       htmlEl.style.textDecoration = 'none';
-      
+
       const leafNodes = Array.from(htmlEl.querySelectorAll('*')).filter(node => node.children.length === 0 && node.textContent?.trim());
       if (leafNodes.length > 0) {
-         leafNodes.forEach(node => {
-            const span = document.createElement('span');
-            span.innerHTML = node.innerHTML;
-            span.style.borderBottom = '1px solid black';
-            span.style.paddingBottom = '0.1em';
-            span.style.display = 'inline-block';
-            node.innerHTML = '';
-            node.appendChild(span);
-         });
+        leafNodes.forEach(node => {
+          const span = document.createElement('span');
+          span.innerHTML = node.innerHTML;
+          span.style.borderBottom = '1px solid black';
+          span.style.paddingBottom = '0.1em';
+          span.style.display = 'inline-block';
+          node.innerHTML = '';
+          node.appendChild(span);
+        });
       } else if (htmlEl.textContent?.trim()) {
-         htmlEl.style.borderBottom = '1px solid black';
-         htmlEl.style.paddingBottom = '0.1em';
-         htmlEl.style.display = 'inline-block';
+        htmlEl.style.borderBottom = '1px solid black';
+        htmlEl.style.paddingBottom = '0.1em';
+        htmlEl.style.display = 'inline-block';
       }
     });
 
     // 3. Prevent margin-collapse and enforce line-height for empty lines
     const bodyContainer = clone.querySelector('.text-justify');
     if (bodyContainer) {
-       (bodyContainer as HTMLElement).style.lineHeight = '2.5';
-       (bodyContainer as HTMLElement).style.pageBreakInside = 'auto'; // Ensure it can break
-       Array.from(bodyContainer.children).forEach(line => {
-           const lineEl = line as HTMLElement;
-           lineEl.style.lineHeight = '2.5';
-           lineEl.style.pageBreakInside = 'auto';
-           if (!line.textContent?.trim()) {
-               lineEl.innerHTML = '<div style="height: 2.5em"></div>';
-           }
-       });
+      (bodyContainer as HTMLElement).style.lineHeight = '2.5';
+      (bodyContainer as HTMLElement).style.pageBreakInside = 'auto'; // Ensure it can break
+      Array.from(bodyContainer.children).forEach(line => {
+        const lineEl = line as HTMLElement;
+        lineEl.style.lineHeight = '2.5';
+        lineEl.style.pageBreakInside = 'auto';
+        if (!line.textContent?.trim()) {
+          lineEl.innerHTML = '<div style="height: 2.5em"></div>';
+        }
+      });
     }
 
     wrapper.appendChild(clone);
 
     const opt = {
       margin: 0,
-      filename: 'military_document.pdf',
+      filename: `${data.pdfFilename || 'military_document'}.pdf`,
       image: { type: 'jpeg' as const, quality: 1.0 },
       html2canvas: { scale: 3, useCORS: true, windowWidth: 794 },
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
@@ -257,17 +266,28 @@ export default function App() {
                   <Settings className="w-5 h-5" />
                   <h2 className="text-lg font-semibold text-slate-800">פרמטרי המסמך</h2>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">רמת סיווג</label>
-                  <select
-                    {...register('classification')}
-                    className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-slate-50"
-                  >
-                    <option value="בלמ&quot;ס">בלמ"ס</option>
-                    <option value="שמור">שמור</option>
-                    <option value="סודי">סודי</option>
-                    <option value="סודי ביותר">סודי ביותר</option>
-                  </select>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">שם קובץ ה-PDF (אופציונלי)</label>
+                    <input
+                      type="text"
+                      {...register('pdfFilename')}
+                      placeholder="מסמך_צבאי"
+                      className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">רמת סיווג</label>
+                    <select
+                      {...register('classification')}
+                      className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-slate-50"
+                    >
+                      <option value="בלמ&quot;ס">בלמ"ס</option>
+                      <option value="שמור">שמור</option>
+                      <option value="סודי">סודי</option>
+                      <option value="סודי ביותר">סודי ביותר</option>
+                    </select>
+                  </div>
                 </div>
               </section>
 
@@ -423,15 +443,15 @@ export default function App() {
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">העלה חתימה (תמונה)</label>
                     <div className="flex items-center gap-4">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
+                      <input
+                        type="file"
+                        accept="image/*"
                         onChange={handleSignatureUpload}
                         className="flex-1 text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                       />
                       {watch('signatureImage') && (
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => setValue('signatureImage', null)}
                           className="text-xs text-red-500 hover:text-red-600 font-medium"
                         >
@@ -477,7 +497,7 @@ export default function App() {
                   {/* Document Container */}
                   <table className="w-full" style={{ borderCollapse: 'collapse' }}>
                     {/* 1. REPEATING HEADER (Classification & Logos) */}
-                    <thead className="table-header-group">
+                    <thead className="table-header-group" style={{ display: 'table-header-group' }}>
                       <tr>
                         {/* We use an inline style height to force the header size on every page */}
                         <td style={{ height: '4.5cm', verticalAlign: 'top', padding: 0, position: 'relative' }}>
@@ -490,9 +510,9 @@ export default function App() {
                             </div>
 
                             {/* Logos (Absolute Top-Right) */}
-                            <div style={{ position: 'absolute', top: '2cm', right: 0, height: '1.2cm', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <img src={idfLogo} alt="לוגו צהל" style={{ height: '1.2cm', objectFit: 'contain' }} />
-                              <img src={bahad1Logo} alt="לוגו בהד 1" style={{ height: '1.2cm', objectFit: 'contain' }} />
+                            <div style={{ position: 'absolute', top: '2cm', right: 0, height: '1.8cm', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                              <img src={idfLogo} alt="לוגו צהל" style={{ height: '1.8cm', objectFit: 'contain' }} />
+                              <img src={bahad1Logo} alt="לוגו בהד 1" style={{ height: '1.8cm', objectFit: 'contain' }} />
                             </div>
                           </div>
                         </td>
@@ -504,107 +524,107 @@ export default function App() {
                         <td style={{ verticalAlign: 'top', position: 'relative' }}>
                           {/* SENDER DETAILS (Absolute Page 1) */}
                           <div style={{ position: 'absolute', top: '-2.5cm', left: 0 }} dir="rtl">
-                             <table className="w-64 border-collapse border-none leading-tight table-fixed">
-                                <tbody>
+                            <table className="w-64 border-collapse border-none leading-tight table-fixed">
+                              <tbody>
+                                <tr>
+                                  {splitToThree(data.unitName).map((part, i) => (
+                                    <td key={i} className={cn("w-1/3 font-bold pb-1 whitespace-nowrap align-top", i === 0 ? "text-right" : i === 1 ? "text-center" : "text-left")}>
+                                      {part}
+                                    </td>
+                                  ))}
+                                </tr>
+                                {data.unitHonoring && (
                                   <tr>
-                                    {splitToThree(data.unitName).map((part, i) => (
+                                    {splitToThree(data.unitHonoring).map((part, i) => (
                                       <td key={i} className={cn("w-1/3 font-bold pb-1 whitespace-nowrap align-top", i === 0 ? "text-right" : i === 1 ? "text-center" : "text-left")}>
                                         {part}
                                       </td>
                                     ))}
                                   </tr>
-                                  {data.unitHonoring && (
-                                    <tr>
-                                      {splitToThree(data.unitHonoring).map((part, i) => (
-                                        <td key={i} className={cn("w-1/3 font-bold pb-1 whitespace-nowrap align-top", i === 0 ? "text-right" : i === 1 ? "text-center" : "text-left")}>
+                                )}
+                                {data.subUnitName && (
+                                  <tr>
+                                    {splitToThree(data.subUnitName).map((part, i) => (
+                                      <td key={i} className={cn("w-1/3 font-bold pb-1 whitespace-nowrap align-top", i === 0 ? "text-right" : i === 1 ? "text-center" : "text-left")}>
+                                        {part}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                )}
+                                {data.senderDetailsText.split('\n').filter(Boolean).map((line, i) => {
+                                  const parts = splitToThree(line);
+                                  return (
+                                    <tr key={i}>
+                                      {parts.map((part, j) => (
+                                        <td key={j} className={cn("w-1/3 whitespace-nowrap align-top", j === 0 ? "text-right" : j === 1 ? "text-center" : "text-left")}>
                                           {part}
                                         </td>
                                       ))}
                                     </tr>
-                                  )}
-                                  {data.subUnitName && (
-                                    <tr>
-                                      {splitToThree(data.subUnitName).map((part, i) => (
-                                        <td key={i} className={cn("w-1/3 font-bold pb-1 whitespace-nowrap align-top", i === 0 ? "text-right" : i === 1 ? "text-center" : "text-left")}>
-                                          {part}
-                                        </td>
-                                      ))}
-                                    </tr>
-                                  )}
-                                  {data.senderDetailsText.split('\n').filter(Boolean).map((line, i) => {
-                                    const parts = splitToThree(line);
-                                    return (
-                                      <tr key={i}>
-                                        {parts.map((part, j) => (
-                                          <td key={j} className={cn("w-1/3 whitespace-nowrap align-top", j === 0 ? "text-right" : j === 1 ? "text-center" : "text-left")}>
-                                            {part}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
 
-                    {/* 2. BODY CONTENT */}
-                    <div style={{ position: 'relative', paddingTop: '2.5cm' }}>
-                      {/* Recipient Block */}
-                      <div className="mb-8">
-                        {data.toRecipients.some(r => r.value.trim()) && (
-                          <div className="flex underline decoration-1 underline-offset-2">
-                            <div className="w-8">אל:</div>
-                            <div className="flex-1">
-                              {data.toRecipients.filter(r => r.value.trim()).map((r, i) => (
-                                <div key={i}>{r.value}</div>
-                              ))}
+                          {/* 2. BODY CONTENT */}
+                          <div style={{ position: 'relative', paddingTop: '2.5cm' }}>
+                            {/* Recipient Block */}
+                            <div className="mb-8">
+                              {data.toRecipients.some(r => r.value.trim()) && (
+                                <div className="flex underline decoration-1 underline-offset-2">
+                                  <div className="w-8">אל:</div>
+                                  <div className="flex-1">
+                                    {data.toRecipients.filter(r => r.value.trim()).map((r, i) => (
+                                      <div key={i}>{r.value}</div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {data.ccRecipients.some(r => r.value.trim()) && (
+                                <div className={`flex ${data.toRecipients.some(r => r.value.trim()) ? 'mt-1' : ''}`}>
+                                  <div className="w-8">דע:</div>
+                                  <div className="flex-1">
+                                    {data.ccRecipients.filter(r => r.value.trim()).map((r, i) => (
+                                      <div key={i}>{r.value}</div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
 
-                        {data.ccRecipients.some(r => r.value.trim()) && (
-                          <div className={`flex ${data.toRecipients.some(r => r.value.trim()) ? 'mt-1' : ''}`}>
-                            <div className="w-8">דע:</div>
-                            <div className="flex-1">
-                              {data.ccRecipients.filter(r => r.value.trim()).map((r, i) => (
-                                <div key={i}>{r.value}</div>
-                              ))}
+                            {/* Greeting */}
+                            <div style={{ marginBottom: '1.5em' }}>
+                              שלום רב,
                             </div>
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Greeting */}
-                      <div style={{ marginBottom: '1.5em' }}>
-                        שלום רב,
-                      </div>
-
-                      {/* Subject */}
-                      <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '3em' }}>
-                        הנדון: <span className="underline decoration-1 underline-offset-2">{data.subject}</span>
-                      </div>
+                            {/* Subject */}
+                            <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '3em' }}>
+                              הנדון: <span className="underline decoration-1 underline-offset-2">{data.subject}</span>
+                            </div>
 
                             {/* Fixed Body Text */}
                             <div className="mb-24 text-justify">
                               {data.body.split('\n').map((line, i) => {
                                 const trimmedLine = line.trim();
                                 const leadingSpaces = line.match(/^ */)?.[0].length || 0;
-                                
+
                                 // Automatic military indentation levels
                                 let autoPadding = 0;
                                 if (/^[א-ת]\./.test(trimmedLine)) autoPadding = 1.5;      // Level 2: א.
                                 else if (/^\d+\)/.test(trimmedLine)) autoPadding = 3;     // Level 3: 1)
                                 else if (/^[א-ת]\)/.test(trimmedLine)) autoPadding = 4.5; // Level 4: א)
-                                
+
                                 const totalPaddingRem = (leadingSpaces / 3) * 1.5 + autoPadding;
                                 const paddingRight = `${totalPaddingRem}rem`;
                                 const isEmptyBlockSpacing = !trimmedLine;
 
                                 return (
-                                  <div key={i} style={{ 
-                                      paddingRight: paddingRight, 
-                                      marginBottom: isEmptyBlockSpacing ? '1.5em' : '0',
-                                      lineHeight: '2.5'
+                                  <div key={i} style={{
+                                    paddingRight: paddingRight,
+                                    marginBottom: isEmptyBlockSpacing ? '1.5em' : '0',
+                                    lineHeight: '2.5'
                                   }}>
                                     {trimmedLine || '\u00A0'}
                                   </div>
