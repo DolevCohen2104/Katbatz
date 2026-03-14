@@ -42,16 +42,26 @@ interface DocumentData {
 
 const STORAGE_KEY = 'katbatzolog_data';
 
+const getDefaultSenderDetailsText = () => {
+  const today = new Date();
+  const gregorianDate = today.toLocaleDateString('he-IL', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  return `טלפון מטכ"לי: 03-9876443
+טלפון אזרחי: 03-1928376
+מספר פקס: 03-1928376
+
+${gregorianDate}`;
+};
+
 const defaultValues: DocumentData = {
   classification: 'בלמ"ס',
   unitName: 'בית הספר לקצינים',
   unitHonoring: 'ע״ש רא״ל לסקוב',
   subUnitName: 'ענף ההדרכה',
-  senderDetailsText: `טלפון מטכ"לי: 03-9876443
-טלפון אזרחי: 03-1928376
-מספר פקס: 03-1928376
-כ"ג באדר התשפ"ו
-12 במרץ 2026`,
+  senderDetailsText: getDefaultSenderDetailsText(),
   toRecipients: [{ value: 'בה"ד 1-מגמת נחשון-גדוד ארז-מ"פ דותן-סרן אביה רויטברג' }],
   ccRecipients: [{ value: 'בה"ד 1-מגמת נחשון-גדוד ארז-מפקדת צוות 14-סגן תהל קוור' }],
   subject: 'צוער/ת בבית הספר לקצינים',
@@ -86,6 +96,34 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, [watch]);
+
+  // Fetch Hebrew date from HebCal API on first load (no saved data)
+  React.useEffect(() => {
+    const hasSaved = Boolean(localStorage.getItem(STORAGE_KEY));
+    if (hasSaved) return;
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    fetch(`https://www.hebcal.com/converter?cfg=json&date=${yyyy}-${mm}-${dd}&g2h=1&strict=1`)
+      .then(r => r.json())
+      .then(data => {
+        const parts = data.heDateParts as { d: string; m: string; y: string };
+        // Replace typographic geresh/gershayim with plain quotes
+        const fix = (s: string) => s.replace(/״/g, '"').replace(/׳/g, "'");
+        const hebrewDate = `${fix(parts.d)} ב${parts.m} ה${fix(parts.y)}`;
+        const gregorianDate = today.toLocaleDateString('he-IL', {
+          day: 'numeric', month: 'long', year: 'numeric',
+        });
+        setValue('senderDetailsText',
+          `טלפון מטכ"לי: 03-9876443
+טלפון אזרחי: 03-1928376
+מספר פקס: 03-1928376
+${hebrewDate}
+${gregorianDate}`);
+      })
+      .catch(() => { /* fallback: keep default with Gregorian only */ });
+  }, [setValue]);
 
   const { fields: toFields, append: appendTo, remove: removeTo } = useFieldArray({
     control,
