@@ -410,11 +410,11 @@ export default function App() {
                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, textAlign: 'center' }}>
                               <div className="font-bold underline decoration-1 underline-offset-2">{data.classification}</div>
                               <div className="mt-1 print:hidden">1</div>
-                              <div className="mt-1 hidden print:block page-number-display"></div>
+                              {/* Page number handled by @page @top-center in CSS for print */}
                             </div>
 
                             {/* Logos (Absolute Top-Right) */}
-                            <div style={{ position: 'absolute', top: '2cm', right: 0, height: '1.8cm', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <div style={{ position: 'absolute', top: '0.2cm', right: 0, height: '1.8cm', display: 'flex', gap: '12px', alignItems: 'center' }}>
                               <img src={idfLogo} alt="לוגו צהל" style={{ height: '1.8cm', objectFit: 'contain' }} />
                               <img src={bahad1Logo} alt="לוגו בהד 1" style={{ height: '1.8cm', objectFit: 'contain' }} />
                             </div>
@@ -427,7 +427,7 @@ export default function App() {
                       <tr>
                         <td style={{ verticalAlign: 'top', position: 'relative' }}>
                           {/* SENDER DETAILS (Absolute Page 1) */}
-                          <div style={{ position: 'absolute', top: '-2.5cm', left: 0 }} dir="rtl">
+                          <div style={{ position: 'absolute', top: '-3.8cm', left: 0 }} dir="rtl">
                             <table className="w-64 border-collapse border-none leading-tight table-fixed">
                               <tbody>
                                 <tr>
@@ -596,17 +596,16 @@ export default function App() {
             @page {
               size: A4;
               margin: 2.5cm 3cm;
+              @top-center {
+                content: counter(page);
+                font-size: 11pt;
+                vertical-align: top;
+                padding-top: 0.6cm;
+              }
             }
             body {
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
-              counter-reset: page 0;
-            }
-            .page-number-display {
-              counter-increment: page;
-            }
-            .page-number-display::after {
-              content: counter(page);
             }
             .print-no-padding {
               padding: 0 !important;
