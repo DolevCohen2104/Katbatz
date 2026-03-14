@@ -427,7 +427,7 @@ export default function App() {
                       <tr>
                         <td style={{ verticalAlign: 'top', position: 'relative' }}>
                           {/* SENDER DETAILS (Absolute Page 1) */}
-                          <div style={{ position: 'absolute', top: '-3.8cm', left: 0 }} dir="rtl">
+                          <div style={{ position: 'absolute', top: '-3.8cm', right: '55%' }} dir="rtl">
                             <table className="w-64 border-collapse border-none leading-tight table-fixed">
                               <tbody>
                                 <tr>
@@ -599,8 +599,8 @@ export default function App() {
               @top-center {
                 content: counter(page);
                 font-size: 11pt;
-                vertical-align: top;
-                padding-top: 0.6cm;
+                vertical-align: bottom;
+                padding-bottom: 0.3cm;
               }
             }
             body {
