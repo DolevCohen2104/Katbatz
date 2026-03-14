@@ -410,7 +410,7 @@ export default function App() {
                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, textAlign: 'center' }}>
                               <div className="font-bold underline decoration-1 underline-offset-2">{data.classification}</div>
                               <div className="mt-1 print:hidden">1</div>
-                              <div className="mt-1 hidden print:block page-number"></div>
+                              <div className="mt-1 hidden print:block page-number-display"></div>
                             </div>
 
                             {/* Logos (Absolute Top-Right) */}
@@ -593,53 +593,31 @@ export default function App() {
       <style dangerouslySetInnerHTML={{
         __html: `
           @media print {
-          @page {
-            size: A4;
+            @page {
+              size: A4;
+              margin: 2.5cm 3cm;
+            }
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              counter-reset: page 0;
+            }
+            .page-number-display {
+              counter-increment: page;
+            }
+            .page-number-display::after {
+              content: counter(page);
+            }
+            .print-no-padding {
+              padding: 0 !important;
+            }
           }
-          body {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            counter-reset: page;
+          /* Ensure tfoot adheres to the very bottom */
+          .table-footer-group {
+            display: table-footer-group;
+            vertical-align: bottom;
           }
-          .page-number::after {
-            counter-increment: page;
-            content: counter(page);
-          }
-          .print-no-padding {
-            padding: 0 !important;
-          }
-        }
-        /* Ensure tfoot adheres to the very bottom */
-        .table-footer-group {
-          display: table-footer-group;
-          vertical-align: bottom;
-        }
-      `}} />
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @media print {
-          @page {
-            size: A4;
-          }
-          body {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            counter-reset: page;
-          }
-          .page-number::after {
-            counter-increment: page;
-            content: counter(page);
-          }
-          .print-no-padding {
-            padding: 0 !important;
-          }
-        }
-        /* Ensure tfoot adheres to the very bottom */
-        .table-footer-group {
-          display: table-footer-group;
-          vertical-align: bottom;
-        }
-      `}} />
+        `}} />
     </div>
   );
 }
