@@ -153,13 +153,6 @@ export default function App() {
     clone.style.backgroundColor = '#ffffff';
     clone.classList.remove('w-full', 'w-[210mm]', 'max-w-[210mm]');
 
-    // 1. Shrink header height on clone to prevent overlapping To/CC blocks
-    const headerBlock = clone.querySelector('.h-\\[8cm\\]') as HTMLElement;
-    if (headerBlock) {
-      headerBlock.classList.remove('h-[8cm]');
-      headerBlock.style.height = '6.5cm'; 
-    }
-
     // Ensure the table inside the clone allows for page breaks
     const table = clone.querySelector('table');
     if (table) {
@@ -196,14 +189,14 @@ export default function App() {
     // 3. Prevent margin-collapse and enforce line-height for empty lines
     const bodyContainer = clone.querySelector('.text-justify');
     if (bodyContainer) {
-       (bodyContainer as HTMLElement).style.lineHeight = '1.5';
+       (bodyContainer as HTMLElement).style.lineHeight = '2.5';
        (bodyContainer as HTMLElement).style.pageBreakInside = 'auto'; // Ensure it can break
        Array.from(bodyContainer.children).forEach(line => {
            const lineEl = line as HTMLElement;
-           lineEl.style.lineHeight = '1.5';
+           lineEl.style.lineHeight = '2.5';
            lineEl.style.pageBreakInside = 'auto';
            if (!line.textContent?.trim()) {
-               lineEl.innerHTML = '<div style="height: 1.5em"></div>';
+               lineEl.innerHTML = '<div style="height: 2.5em"></div>';
            }
        });
     }
@@ -481,30 +474,38 @@ export default function App() {
                     boxSizing: 'border-box'
                   }}>
 
-                  <table className="w-full">
+                  {/* Document Container */}
+                  <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+                    {/* 1. REPEATING HEADER (Classification & Logos) */}
                     <thead className="table-header-group">
                       <tr>
-                        <td>
-                          {/* Header Block - Repeats on every printed page */}
-                          <div className="relative h-[8cm] w-full">
-                            {/* Classification & Page Number (Center) */}
-                            <div className="absolute top-0 left-0 right-0 text-center">
+                        {/* We use an inline style height to force the header size on every page */}
+                        <td style={{ height: '4.5cm', verticalAlign: 'top', padding: 0, position: 'relative' }}>
+                          <div style={{ position: 'relative', height: '4.5cm', width: '100%' }}>
+                            {/* Classification & Page Number (Absolute Center) */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, textAlign: 'center' }}>
                               <div className="font-bold underline decoration-1 underline-offset-2">{data.classification}</div>
                               <div className="mt-1 print:hidden">1</div>
                               <div className="mt-1 hidden print:block page-number"></div>
                             </div>
 
-                            {/* Logo (Top-Right) */}
-                            <div className="absolute top-[2cm] right-0 h-[1.8cm] flex gap-2 items-center justify-end print:border-none print:bg-transparent">
-                              <img src={idfLogo} alt="לוגו צהל" className="h-full object-contain" />
-                              <img src={bahad1Logo} alt="לוגו בהד 1" className="h-full object-contain" />
+                            {/* Logos (Absolute Top-Right) */}
+                            <div style={{ position: 'absolute', top: '2cm', right: 0, height: '1.2cm', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <img src={idfLogo} alt="לוגו צהל" style={{ height: '1.2cm', objectFit: 'contain' }} />
+                              <img src={bahad1Logo} alt="לוגו בהד 1" style={{ height: '1.2cm', objectFit: 'contain' }} />
                             </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </thead>
 
-                            {/* Sender Details (Top-Left, "Cube" layout) */}
-                            <div className="absolute top-[2cm] left-0" dir="rtl">
-                              <table className="w-64 border-collapse border-none leading-tight table-fixed">
+                    <tbody>
+                      <tr>
+                        <td style={{ verticalAlign: 'top', position: 'relative' }}>
+                          {/* SENDER DETAILS (Absolute Page 1) */}
+                          <div style={{ position: 'absolute', top: '-2.5cm', left: 0 }} dir="rtl">
+                             <table className="w-64 border-collapse border-none leading-tight table-fixed">
                                 <tbody>
-                                  {/* Unit Name Row */}
                                   <tr>
                                     {splitToThree(data.unitName).map((part, i) => (
                                       <td key={i} className={cn("w-1/3 font-bold pb-1 whitespace-nowrap align-top", i === 0 ? "text-right" : i === 1 ? "text-center" : "text-left")}>
@@ -512,7 +513,6 @@ export default function App() {
                                       </td>
                                     ))}
                                   </tr>
-                                  {/* Unit Honoring Row */}
                                   {data.unitHonoring && (
                                     <tr>
                                       {splitToThree(data.unitHonoring).map((part, i) => (
@@ -522,7 +522,6 @@ export default function App() {
                                       ))}
                                     </tr>
                                   )}
-                                  {/* Sub-Unit Name Row */}
                                   {data.subUnitName && (
                                     <tr>
                                       {splitToThree(data.subUnitName).map((part, i) => (
@@ -532,7 +531,6 @@ export default function App() {
                                       ))}
                                     </tr>
                                   )}
-                                  {/* Detail Rows */}
                                   {data.senderDetailsText.split('\n').filter(Boolean).map((line, i) => {
                                     const parts = splitToThree(line);
                                     return (
@@ -547,64 +545,44 @@ export default function App() {
                                   })}
                                 </tbody>
                               </table>
+                          </div>
+
+                    {/* 2. BODY CONTENT */}
+                    <div style={{ position: 'relative', paddingTop: '2.5cm' }}>
+                      {/* Recipient Block */}
+                      <div className="mb-8">
+                        {data.toRecipients.some(r => r.value.trim()) && (
+                          <div className="flex underline decoration-1 underline-offset-2">
+                            <div className="w-8">אל:</div>
+                            <div className="flex-1">
+                              {data.toRecipients.filter(r => r.value.trim()).map((r, i) => (
+                                <div key={i}>{r.value}</div>
+                              ))}
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    </thead>
+                        )}
 
-                    <tfoot className="table-footer-group">
-                      <tr>
-                        <td>
-                          {/* Fixed Slogan - Repeats on every printed page */}
-                          <div className="relative h-[2cm] w-full">
-                            <div className="absolute bottom-0 left-0 right-0 text-center font-bold">
-                              {data.slogan}
+                        {data.ccRecipients.some(r => r.value.trim()) && (
+                          <div className={`flex ${data.toRecipients.some(r => r.value.trim()) ? 'mt-1' : ''}`}>
+                            <div className="w-8">דע:</div>
+                            <div className="flex-1">
+                              {data.ccRecipients.filter(r => r.value.trim()).map((r, i) => (
+                                <div key={i}>{r.value}</div>
+                              ))}
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    </tfoot>
+                        )}
+                      </div>
 
-                    <tbody>
-                      <tr>
-                        <td>
-                          {/* Main Content Wrapper */}
-                          <div className="relative">
-                            {/* Fixed Recipient Block */}
-                            <div className="mb-8">
-                              {data.toRecipients.some(r => r.value.trim()) && (
-                                <div className="flex underline decoration-1 underline-offset-2">
-                                  <div className="w-8">אל:</div>
-                                  <div className="flex-1">
-                                    {data.toRecipients.filter(r => r.value.trim()).map((r, i) => (
-                                      <div key={i}>{r.value}</div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+                      {/* Greeting */}
+                      <div style={{ marginBottom: '1.5em' }}>
+                        שלום רב,
+                      </div>
 
-                              {data.ccRecipients.some(r => r.value.trim()) && (
-                                <div className={`flex ${data.toRecipients.some(r => r.value.trim()) ? 'mt-1' : ''}`}>
-                                  <div className="w-8">דע:</div>
-                                  <div className="flex-1">
-                                    {data.ccRecipients.filter(r => r.value.trim()).map((r, i) => (
-                                      <div key={i}>{r.value}</div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Greeting */}
-                            <div className="mb-[1.5em]">
-                              שלום רב,
-                            </div>
-
-                            {/* Fixed Subject */}
-                            <div className="text-center font-bold mb-[3em]"> {/* 2 line gap below */}
-                              הנדון: <span className="underline decoration-1 underline-offset-2">{data.subject}</span>
-                            </div>
+                      {/* Subject */}
+                      <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '3em' }}>
+                        הנדון: <span className="underline decoration-1 underline-offset-2">{data.subject}</span>
+                      </div>
 
                             {/* Fixed Body Text */}
                             <div className="mb-24 text-justify">
@@ -626,7 +604,7 @@ export default function App() {
                                   <div key={i} style={{ 
                                       paddingRight: paddingRight, 
                                       marginBottom: isEmptyBlockSpacing ? '1.5em' : '0',
-                                      lineHeight: '1.5'
+                                      lineHeight: '2.5'
                                   }}>
                                     {trimmedLine || '\u00A0'}
                                   </div>
@@ -669,17 +647,25 @@ export default function App() {
                         </td>
                       </tr>
                     </tbody>
-                  </table>
 
+                    {/* 3. FOOTER (Slogan) */}
+                    <tfoot className="table-footer-group">
+                      <tr>
+                        <td style={{ height: '2cm', verticalAlign: 'bottom', padding: 0 }}>
+                          <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                            {data.slogan}
+                          </div>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </main>
 
-      {/* Print Styles */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media print {
