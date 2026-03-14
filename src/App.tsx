@@ -22,6 +22,7 @@ function cn(...inputs: ClassValue[]) {
 interface DocumentData {
   classification: string;
   unitName: string;
+  unitHonoring: string;
   subUnitName: string;
   senderDetailsText: string;
   toRecipients: { value: string }[];
@@ -41,6 +42,7 @@ const STORAGE_KEY = 'katbatzolog_data';
 const defaultValues: DocumentData = {
   classification: 'בלמ"ס',
   unitName: 'בית הספר לקצינים',
+  unitHonoring: 'ע״ש רא״ל לסקוב',
   subUnitName: 'ענף ההדרכה',
   senderDetailsText: `טלפון מטכ"לי: 03-9876443
 טלפון אזרחי: 03-1928376
@@ -143,23 +145,30 @@ export default function App() {
     // Clone the preview element and force A4 dimensions in pixels
     const clone = element.cloneNode(true) as HTMLElement;
     clone.style.width = '794px';       // A4 width at 96 DPI
-    clone.style.height = '1122px';     // Strict A4 height to prevent blank extra page
-    clone.style.overflow = 'hidden';
-    clone.style.position = 'relative'; // Required for absolute footer
-    clone.style.padding = '2.5cm';     // Ensure strict margin padding
+    clone.style.height = 'auto';       // Allow growth for multiple pages
+    clone.style.overflow = 'visible';
+    clone.style.position = 'relative'; 
+    clone.style.padding = '2.5cm';     // Restore strict margin padding
     clone.style.boxSizing = 'border-box';
     clone.style.backgroundColor = '#ffffff';
-    clone.style.minHeight = '';
     clone.classList.remove('w-full', 'w-[210mm]', 'max-w-[210mm]');
 
-    // 1. Move To/CC blocks higher by shrinking the Header gap (moderate lift to avoid overlap)
+    // 1. Shrink header height on clone to prevent overlapping To/CC blocks
     const headerBlock = clone.querySelector('.h-\\[8cm\\]') as HTMLElement;
     if (headerBlock) {
       headerBlock.classList.remove('h-[8cm]');
-      headerBlock.style.height = '6.5cm'; // Leaves enough room for sender details
+      headerBlock.style.height = '6.5cm'; 
     }
 
-    // 2. Fix Underline Strikethrough by replacing with tighter border-bottom spans
+    // Ensure the table inside the clone allows for page breaks
+    const table = clone.querySelector('table');
+    if (table) {
+      table.style.width = '100%';
+      table.style.tableLayout = 'fixed';
+      table.style.borderCollapse = 'collapse';
+    }
+
+    // Fix Underline Strikethrough by replacing with tighter border-bottom spans
     const underlineEls = clone.querySelectorAll('.underline');
     underlineEls.forEach(el => {
       const htmlEl = el as HTMLElement;
@@ -172,7 +181,7 @@ export default function App() {
             const span = document.createElement('span');
             span.innerHTML = node.innerHTML;
             span.style.borderBottom = '1px solid black';
-            span.style.paddingBottom = '0.1em'; // Tighter to text to avoid overlap with lines below
+            span.style.paddingBottom = '0.1em';
             span.style.display = 'inline-block';
             node.innerHTML = '';
             node.appendChild(span);
@@ -184,31 +193,19 @@ export default function App() {
       }
     });
 
-    // 3. Prevent margin-collapse for empty lines in HTML2Canvas
+    // 3. Prevent margin-collapse and enforce line-height for empty lines
     const bodyContainer = clone.querySelector('.text-justify');
     if (bodyContainer) {
+       (bodyContainer as HTMLElement).style.lineHeight = '1.5';
+       (bodyContainer as HTMLElement).style.pageBreakInside = 'auto'; // Ensure it can break
        Array.from(bodyContainer.children).forEach(line => {
+           const lineEl = line as HTMLElement;
+           lineEl.style.lineHeight = '1.5';
+           lineEl.style.pageBreakInside = 'auto';
            if (!line.textContent?.trim()) {
-               (line as HTMLElement).innerHTML = '<div style="height: 1.5rem"></div>'; // Explicit spacer
+               lineEl.innerHTML = '<div style="height: 1.5em"></div>';
            }
        });
-    }
-
-    // 4. Pin Footer/Slogan strictly to the center bottom of the clone layer
-    const sloganDiv = clone.querySelector('tfoot .text-center.font-bold') as HTMLElement;
-    if (sloganDiv) {
-      // Detach slogan from the table and pin it directly to the A4 page root
-      sloganDiv.style.position = 'absolute';
-      sloganDiv.style.bottom = '2.5cm';
-      sloganDiv.style.left = '0';
-      sloganDiv.style.right = '0';
-      sloganDiv.style.textAlign = 'center';
-      sloganDiv.style.width = '100%';
-      clone.appendChild(sloganDiv);
-      
-      // Hide the old tfoot structure to prevent double rendering
-      const tfoot = clone.querySelector('tfoot') as HTMLElement;
-      if (tfoot) tfoot.style.display = 'none';
     }
 
     wrapper.appendChild(clone);
@@ -218,7 +215,8 @@ export default function App() {
       filename: 'military_document.pdf',
       image: { type: 'jpeg' as const, quality: 1.0 },
       html2canvas: { scale: 3, useCORS: true, windowWidth: 794 },
-      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+      pagebreak: { mode: ['css', 'legacy'] }
     };
 
     try {
@@ -289,13 +287,17 @@ export default function App() {
                   <h2 className="text-lg font-semibold text-slate-800">פרטי המוען</h2>
                 </div>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2 sm:col-span-1">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">שם יחידה</label>
                       <input type="text" {...register('unitName')} className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
                     </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">שם תת-יחידה</label>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">הקדשת יחידה (למשל ע״ש רא״ל לסקוב)</label>
+                      <input type="text" {...register('unitHonoring')} className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">שם תת-יחידה/ענף</label>
                       <input type="text" {...register('subUnitName')} className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
                     </div>
                   </div>
@@ -510,6 +512,16 @@ export default function App() {
                                       </td>
                                     ))}
                                   </tr>
+                                  {/* Unit Honoring Row */}
+                                  {data.unitHonoring && (
+                                    <tr>
+                                      {splitToThree(data.unitHonoring).map((part, i) => (
+                                        <td key={i} className={cn("w-1/3 font-bold pb-1 whitespace-nowrap align-top", i === 0 ? "text-right" : i === 1 ? "text-center" : "text-left")}>
+                                          {part}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  )}
                                   {/* Sub-Unit Name Row */}
                                   {data.subUnitName && (
                                     <tr>
@@ -613,7 +625,8 @@ export default function App() {
                                 return (
                                   <div key={i} style={{ 
                                       paddingRight: paddingRight, 
-                                      marginBottom: isEmptyBlockSpacing ? '1.5em' : '0'
+                                      marginBottom: isEmptyBlockSpacing ? '1.5em' : '0',
+                                      lineHeight: '1.5'
                                   }}>
                                     {trimmedLine || '\u00A0'}
                                   </div>

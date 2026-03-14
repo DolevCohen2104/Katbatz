@@ -1,25 +1,30 @@
-# Build stage
-FROM node:20-slim AS build
+# Stage 1: Build
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package.json and install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-# Copy source and build the app
+# Copy source code and build
 COPY . .
+
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Stage 2: Serve
+FROM node:20-alpine
 
-# Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Copy custom nginx config if needed (optional)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install 'serve' to serve static files
+RUN npm install -g serve
 
-EXPOSE 80
+# Copy built assets from builder stage
+COPY --from=builder /app/dist ./dist
 
-CMD ["nginx", "-g", "daemon off;"]
+# Expose port (Cloud Run defaults to 8080)
+EXPOSE 8080
+
+# Command to serve the application on port 8080
+CMD ["serve", "-s", "dist", "-l", "8080"]
